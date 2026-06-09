@@ -300,29 +300,23 @@ async function recommend(req, res, next) {
     // 当日已吃食物汇总
     const eatenToday = meals.map(m => `${m.meal_type}:${m.food_name}(${Math.round(m.calories)}kcal)`).join(', ') || '暂无';
 
-    // 获取常见食物供 AI 参考
+    // 获取常见食物供 AI 参考（10 种即可减少 token）
     const [foods] = await pool.execute(
-      "SELECT name, category, calories, protein, carbs, fat, serving_size, serving_desc FROM foods WHERE is_custom = 0 ORDER BY RAND() LIMIT 20"
+      "SELECT name, category, calories, protein, carbs, fat, serving_size FROM foods WHERE is_custom = 0 ORDER BY RAND() LIMIT 10"
     );
     const foodRef = foods.map(f =>
-      `${f.name}(${f.category}|${Math.round(f.calories*(f.serving_size/100))}kcal/份|蛋白${f.protein}g|碳水${f.carbs}g|脂肪${f.fat}g)`
-    ).join(', ');
+      `${f.name}(${f.category},${Math.round(f.calories*(f.serving_size/100))}kcal)`
+    ).join('、');
 
     const profileText = profile
-      ? `用户画像：${profile.gender}，${profile.age}岁，${profile.height}cm，${profile.weight}kg，活动水平${profile.activity_level}，目标${profile.goal}，每日推荐${targetCal}kcal`
-      : '无个人画像';
+      ? `${profile.gender} ${profile.age}岁 ${profile.height}cm ${profile.weight}kg ${profile.activity_level} 目标${profile.goal} 推荐${targetCal}kcal/日`
+      : '未设置画像，默认2000kcal/日';
 
-    const prompt = `${profileText}。
-今日已吃：${eatenToday}。
-今日已摄入${Math.round(summary.totalCalories)}kcal，剩余预算约${Math.round(remaining)}kcal。
-已摄入蛋白质${summary.protein.toFixed(1)}g、碳水${summary.carbs.toFixed(1)}g、脂肪${summary.fat.toFixed(1)}g。
-最近7天吃过的食物：${recentFoods}（尽量避开这些，推荐没吃过的）。
-
-现在用户要吃${meal_type}，请从以下食物库中推荐 3 种合适的食物（必须从列表里选，可以组合搭配，优先推荐最近没吃过且营养互补的）：
-${foodRef}
-
-请用 JSON 格式回复，只返回 JSON，不要其他文字：
-{"reason":"一句话推荐理由","foods":[{"name":"食物名","why":"为什么推荐这个"}]}`;
+    const prompt = `${profileText}
+今日:${eatenToday} 已摄入${Math.round(summary.totalCalories)}kcal(${Math.round(remaining)}kcal剩余) 蛋白${summary.protein.toFixed(1)}g 碳水${summary.carbs.toFixed(1)}g 脂肪${summary.fat.toFixed(1)}g
+近7天吃过:${recentFoods}
+请为${meal_type}推荐3种食物(从:${foodRef} 中选，避开最近吃过的):
+{"reason":"理由","foods":[{"name":"食物名","why":"原因"}]}`;
 
     const aiResponse = await callDeepSeek([
       { role: 'system', content: '你是一位专业的营养师，根据用户的营养缺口推荐合适的食物。必须严格按 JSON 格式回复。' },
