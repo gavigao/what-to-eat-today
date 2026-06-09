@@ -38,6 +38,7 @@ export default function TodayPage() {
   const handleAddMeal = async (mealType, food, portion) => {
     const portionCoef = { '少量': 0.25, '半份': 0.5, '一份': 1.0, '多份': 1.5 };
     const ratio = portionCoef[portion] || 1.0;
+    const servingRatio = (food.serving_size || 100) / 100;
     try {
       await addMeal({
         date,
@@ -45,10 +46,10 @@ export default function TodayPage() {
         food_id: food.id,
         food_name: food.name,
         portion_size: portion,
-        calories: (food.calories * ratio).toFixed(2),
-        protein: ((food.protein || 0) * ratio).toFixed(2),
-        carbs: ((food.carbs || 0) * ratio).toFixed(2),
-        fat: ((food.fat || 0) * ratio).toFixed(2),
+        calories: (food.calories * servingRatio * ratio).toFixed(2),
+        protein: ((food.protein || 0) * servingRatio * ratio).toFixed(2),
+        carbs: ((food.carbs || 0) * servingRatio * ratio).toFixed(2),
+        fat: ((food.fat || 0) * servingRatio * ratio).toFixed(2),
       });
       await loadData();
     } catch (err) {

@@ -50,15 +50,18 @@ async function createMeal(req, res, next) {
 
     // 如果有 food_id，从 foods 表获取营养数据并乘以份量系数
     if (food_id) {
-      const [foods] = await pool.execute('SELECT calories, protein, carbs, fat FROM foods WHERE id = ?', [food_id]);
+      const [foods] = await pool.execute('SELECT calories, protein, carbs, fat, serving_size FROM foods WHERE id = ?', [food_id]);
       if (foods.length === 0) {
         return res.status(400).json({ code: 400, data: null, message: '食物不存在' });
       }
+      const food = foods[0];
       const ratio = PORTION_RATIO[portion] || 1.0;
-      calories = (foods[0].calories * ratio).toFixed(2);
-      protein = (foods[0].protein * ratio).toFixed(2);
-      carbs = (foods[0].carbs * ratio).toFixed(2);
-      fat = (foods[0].fat * ratio).toFixed(2);
+      // 以 serving_size 为基准：一份热量 = cal_per_100g × (serving_size/100) × 份量系数
+      const servingRatio = (food.serving_size || 100) / 100;
+      calories = (food.calories * servingRatio * ratio).toFixed(2);
+      protein = (food.protein * servingRatio * ratio).toFixed(2);
+      carbs = (food.carbs * servingRatio * ratio).toFixed(2);
+      fat = (food.fat * servingRatio * ratio).toFixed(2);
     } else {
       // AI 估算的自定义食物，直接使用传入的数值
       calories = parseFloat(req.body.calories || 0).toFixed(2);

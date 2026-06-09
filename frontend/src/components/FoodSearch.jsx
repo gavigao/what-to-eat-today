@@ -3,6 +3,14 @@ import { Search, Sparkles, X } from 'lucide-react';
 import { searchFoods, estimateFood } from '../api/index';
 import PortionSelector from './PortionSelector';
 
+const PORTION_RATIO = { '少量': 0.25, '半份': 0.5, '一份': 1.0, '多份': 1.5 };
+
+// 计算一份食物的实际热量（以 serving_size 为基准）
+function calcServingCal(food) {
+  const servingSize = food.serving_size || 100;
+  return food.calories * (servingSize / 100);
+}
+
 export default function FoodSearch({ onAdd, onClose }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -71,6 +79,13 @@ export default function FoodSearch({ onAdd, onClose }) {
     setResults([]);
   };
 
+  // 计算预览热量
+  const getPreviewCal = (food) => {
+    const perServing = calcServingCal(food);
+    const ratio = PORTION_RATIO[portion] || 1.0;
+    return Math.round(perServing * ratio);
+  };
+
   return (
     <>
       {/* 遮罩 */}
@@ -115,6 +130,10 @@ export default function FoodSearch({ onAdd, onClose }) {
             <div className="space-y-2">
               {results.map((food) => {
                 const isSelected = selectedFood?.id === food.id && selectedFood?.name === food.name;
+                const perServing = calcServingCal(food);
+                const servingDesc = food.serving_desc;
+                const servingSize = food.serving_size || 100;
+
                 return (
                   <div key={food.id || food.name}>
                     <button
@@ -129,11 +148,16 @@ export default function FoodSearch({ onAdd, onClose }) {
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-text-main">{food.name}</span>
                         <span className="text-sm text-primary font-semibold">
-                          {food.calories} kcal/100{food.unit || 'g'}
+                          约{Math.round(perServing)} kcal / 份
                         </span>
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-xs text-text-sub">
                         <span className="bg-gray-100 px-2 py-0.5 rounded">{food.category}</span>
+                        {servingDesc ? (
+                          <span>{servingDesc} ｜ {food.calories} kcal/100{food.unit || 'g'}</span>
+                        ) : (
+                          <span>{food.calories} kcal/100{food.unit || 'g'}</span>
+                        )}
                         {food.is_custom === 1 && (
                           <span className="text-secondary font-medium">AI 估算</span>
                         )}
@@ -149,7 +173,7 @@ export default function FoodSearch({ onAdd, onClose }) {
                           onClick={handleConfirm}
                           className="w-full mt-3 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors"
                         >
-                          确认添加 · 约{(food.calories * (portion === '少量' ? 0.25 : portion === '半份' ? 0.5 : portion === '多份' ? 1.5 : 1)).toFixed(0)} kcal
+                          确认添加 · 约{getPreviewCal(selectedFood)} kcal
                         </button>
                       </div>
                     )}

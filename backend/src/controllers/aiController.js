@@ -183,13 +183,15 @@ async function estimateFood(req, res, next) {
       return res.status(400).json({ code: 400, data: null, message: '缺少 foodName 参数' });
     }
 
-    const prompt = `请估算"${foodName.trim()}"（每100g或100ml）的营养成分。你必须严格按以下 JSON 格式回复，不要包含任何其他文字：
+    const prompt = `请估算"${foodName.trim()}"的营养成分。你必须严格按以下 JSON 格式回复，不要包含任何其他文字：
 {
-  "calories": 数字(kcal),
+  "calories": 数字(每100g或100ml的热量kcal),
   "protein": 数字(g),
   "carbs": 数字(g),
   "fat": 数字(g),
-  "unit": "g"或"ml"
+  "unit": "g"或"ml",
+  "serving_size": 数字(通常一份的重量g或体积ml，如鸡蛋一份50g，可乐一罐330ml),
+  "serving_desc": "份量描述(如'1个(约50g)'、'1罐(330ml)')"
 }`;
 
     const aiResponse = await callDeepSeek([
@@ -214,8 +216,8 @@ async function estimateFood(req, res, next) {
     // 尝试存入食物库（is_custom=1）
     try {
       const [result] = await pool.execute(
-        `INSERT INTO foods (name, category, calories, protein, carbs, fat, unit, is_custom)
-         VALUES (?, '其他', ?, ?, ?, ?, ?, 1)`,
+        `INSERT INTO foods (name, category, calories, protein, carbs, fat, unit, is_custom, serving_size, serving_desc)
+         VALUES (?, '其他', ?, ?, ?, ?, ?, 1, ?, ?)`,
         [
           foodName.trim(),
           parseFloat(nutrition.calories).toFixed(2),
@@ -223,6 +225,8 @@ async function estimateFood(req, res, next) {
           parseFloat(nutrition.carbs || 0).toFixed(2),
           parseFloat(nutrition.fat || 0).toFixed(2),
           nutrition.unit || 'g',
+          parseFloat(nutrition.serving_size) || 100,
+          nutrition.serving_desc || null,
         ]
       );
       nutrition.id = result.insertId;
@@ -230,6 +234,8 @@ async function estimateFood(req, res, next) {
       // 存储失败不影响返回
       nutrition.id = null;
     }
+
+    const servingSize = parseFloat(nutrition.serving_size) || 100;
 
     res.json({
       code: 200,
@@ -243,6 +249,8 @@ async function estimateFood(req, res, next) {
         fat: parseFloat(nutrition.fat || 0).toFixed(2),
         unit: nutrition.unit || 'g',
         is_custom: 1,
+        serving_size: servingSize,
+        serving_desc: nutrition.serving_desc || null,
       },
       message: 'ok',
     });

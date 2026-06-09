@@ -9,7 +9,7 @@ async function searchFoods(req, res, next) {
     }
 
     const [rows] = await pool.execute(
-      'SELECT id, name, category, calories, protein, carbs, fat, unit, is_custom FROM foods WHERE name LIKE ? LIMIT 10',
+      'SELECT id, name, category, calories, protein, carbs, fat, unit, is_custom, serving_size, serving_desc FROM foods WHERE name LIKE ? LIMIT 10',
       [`%${q.trim()}%`]
     );
 
