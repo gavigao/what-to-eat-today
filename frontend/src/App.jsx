@@ -1,122 +1,77 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
+import { UtensilsCrossed, BarChart3, CalendarDays } from 'lucide-react';
+import TodayPage from './pages/TodayPage';
+import DashboardPage from './pages/DashboardPage';
+import HistoryPage from './pages/HistoryPage';
 
-function App() {
-  const [count, setCount] = useState(0)
+const navItems = [
+  { to: '/', icon: UtensilsCrossed, label: '今日记录' },
+  { to: '/dashboard', icon: BarChart3, label: '饮食仪表盘' },
+  { to: '/history', icon: CalendarDays, label: '历史记录' },
+];
 
+export default function App() {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <BrowserRouter>
+      <div className="min-h-screen bg-bg-main pb-16 md:pb-0 md:flex">
+        {/* 桌面端侧边栏 */}
+        <aside className="hidden md:flex md:flex-col md:w-56 md:min-h-screen md:bg-white md:border-r md:border-gray-100 md:fixed md:left-0 md:top-0 md:pt-6">
+          <div className="px-5 mb-8">
+            <h1 className="text-xl font-bold text-primary flex items-center gap-2">
+              🍽️ 今天吃什么
+            </h1>
+          </div>
+          <nav className="flex-1 px-3 space-y-1">
+            {navItems.map(({ to, icon: Icon, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/'}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-text-sub hover:bg-gray-50'
+                  }`
+                }
+              >
+                <Icon size={20} />
+                {label}
+              </NavLink>
+            ))}
+          </nav>
+        </aside>
 
-      <div className="ticks"></div>
+        {/* 主内容区 */}
+        <main className="md:ml-56 flex-1 max-w-3xl mx-auto w-full px-4 pt-4 md:pt-6 md:px-6">
+          <Routes>
+            <Route path="/" element={<TodayPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/history" element={<HistoryPage />} />
+          </Routes>
+        </main>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        {/* 移动端底部导航 */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-40">
+          <div className="flex items-center justify-around h-14">
+            {navItems.map(({ to, icon: Icon, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/'}
+                className={({ isActive }) =>
+                  `flex flex-col items-center gap-0.5 text-xs font-medium transition-colors ${
+                    isActive ? 'text-primary' : 'text-text-sub'
+                  }`
+                }
+              >
+                <Icon size={20} />
+                {label}
+              </NavLink>
+            ))}
+          </div>
+        </nav>
+      </div>
+    </BrowserRouter>
+  );
 }
-
-export default App
