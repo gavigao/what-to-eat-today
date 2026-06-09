@@ -35,21 +35,37 @@ export default function TodayPage() {
   useEffect(() => { loadData(); }, [loadData]);
 
   // 添加食物
-  const handleAddMeal = async (mealType, food, portion) => {
-    const portionCoef = { '少量': 0.25, '半份': 0.5, '一份': 1.0, '多份': 1.5 };
-    const ratio = portionCoef[portion] || 1.0;
-    const servingRatio = (food.serving_size || 100) / 100;
+  const handleAddMeal = async (mealType, food, portion, customGrams) => {
+    const portionCoef = { '少量': 0.25, '半份': 0.5, '一份': 1.0 };
+    let calories, protein, carbs, fat;
+
+    if (customGrams) {
+      // 自定义克数：按每100g比例直接计算
+      const grams = parseFloat(customGrams);
+      calories = (food.calories * (grams / 100)).toFixed(2);
+      protein = ((food.protein || 0) * (grams / 100)).toFixed(2);
+      carbs = ((food.carbs || 0) * (grams / 100)).toFixed(2);
+      fat = ((food.fat || 0) * (grams / 100)).toFixed(2);
+    } else {
+      const ratio = portionCoef[portion] || 1.0;
+      const servingRatio = (food.serving_size || 100) / 100;
+      calories = (food.calories * servingRatio * ratio).toFixed(2);
+      protein = ((food.protein || 0) * servingRatio * ratio).toFixed(2);
+      carbs = ((food.carbs || 0) * servingRatio * ratio).toFixed(2);
+      fat = ((food.fat || 0) * servingRatio * ratio).toFixed(2);
+    }
+
     try {
       await addMeal({
         date,
         meal_type: mealType,
         food_id: food.id,
         food_name: food.name,
-        portion_size: portion,
-        calories: (food.calories * servingRatio * ratio).toFixed(2),
-        protein: ((food.protein || 0) * servingRatio * ratio).toFixed(2),
-        carbs: ((food.carbs || 0) * servingRatio * ratio).toFixed(2),
-        fat: ((food.fat || 0) * servingRatio * ratio).toFixed(2),
+        portion_size: customGrams ? '自定义' : portion,
+        calories,
+        protein,
+        carbs,
+        fat,
       });
       await loadData();
     } catch (err) {

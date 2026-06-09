@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Sparkles, X } from 'lucide-react';
-import { searchFoods, estimateFood } from '../api/index';
+import { Search, Sparkles, X, Trash2 } from 'lucide-react';
+import { searchFoods, estimateFood, deleteCustomFood } from '../api/index';
 import PortionSelector from './PortionSelector';
 
-const PORTION_RATIO = { '少量': 0.25, '半份': 0.5, '一份': 1.0, '多份': 1.5 };
+const PORTION_RATIO = { '少量': 0.25, '半份': 0.5, '一份': 1.0 };
 
 // 计算一份食物的实际热量（以 serving_size 为基准）
 function calcServingCal(food) {
@@ -17,6 +17,7 @@ export default function FoodSearch({ onAdd, onClose }) {
   const [loading, setLoading] = useState(false);
   const [selectedFood, setSelectedFood] = useState(null);
   const [portion, setPortion] = useState('一份');
+  const [customGrams, setCustomGrams] = useState('');
   const [showAiFallback, setShowAiFallback] = useState(false);
   const [aiEstimating, setAiEstimating] = useState(false);
   const timerRef = useRef(null);
@@ -67,20 +68,25 @@ export default function FoodSearch({ onAdd, onClose }) {
   const handleSelectFood = (food) => {
     setSelectedFood(food);
     setPortion('一份');
+    setCustomGrams('');
   };
 
   // 确认添加
   const handleConfirm = () => {
     if (!selectedFood) return;
-    onAdd({ food: selectedFood, portion });
+    onAdd({ food: selectedFood, portion, customGrams: portion === '自定义' ? parseFloat(customGrams) : null });
     setSelectedFood(null);
     setPortion('一份');
+    setCustomGrams('');
     setQuery('');
     setResults([]);
   };
 
   // 计算预览热量
   const getPreviewCal = (food) => {
+    if (portion === '自定义' && customGrams) {
+      return Math.round(food.calories * (parseFloat(customGrams) / 100));
+    }
     const perServing = calcServingCal(food);
     const ratio = PORTION_RATIO[portion] || 1.0;
     return Math.round(perServing * ratio);
@@ -159,7 +165,25 @@ export default function FoodSearch({ onAdd, onClose }) {
                           <span>{food.calories} kcal/100{food.unit || 'g'}</span>
                         )}
                         {food.is_custom === 1 && (
-                          <span className="text-secondary font-medium">AI 估算</span>
+                          <>
+                            <span className="text-secondary font-medium">AI 估算</span>
+                            <button
+                              type="button"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (!confirm(`确定从食物库中删除「${food.name}」？`)) return;
+                                try {
+                                  await deleteCustomFood(food.id);
+                                  setResults(results.filter((f) => f.id !== food.id));
+                                  if (selectedFood?.id === food.id) setSelectedFood(null);
+                                } catch (err) { alert('删除失败: ' + err.message); }
+                              }}
+                              className="ml-auto p-1 rounded hover:bg-red-50 transition-colors"
+                              title="删除此食物"
+                            >
+                              <Trash2 size={14} className="text-red-400" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </button>
@@ -167,13 +191,20 @@ export default function FoodSearch({ onAdd, onClose }) {
                     {/* 份量选择 */}
                     {isSelected && (
                       <div className="mt-2 mb-3 px-1">
-                        <PortionSelector value={portion} onChange={setPortion} />
+                        <PortionSelector
+                          value={portion}
+                          onChange={setPortion}
+                          customGrams={customGrams}
+                          onCustomGramsChange={setCustomGrams}
+                          servingDesc={selectedFood.serving_desc}
+                        />
                         <button
                           type="button"
                           onClick={handleConfirm}
                           className="w-full mt-3 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors"
                         >
                           确认添加 · 约{getPreviewCal(selectedFood)} kcal
+                          {portion === '自定义' && customGrams && `（${customGrams}g）`}
                         </button>
                       </div>
                     )}

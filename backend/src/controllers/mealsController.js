@@ -48,8 +48,14 @@ async function createMeal(req, res, next) {
     const portion = portion_size || '一份';
     let calories, protein, carbs, fat;
 
-    // 如果有 food_id，从 foods 表获取营养数据并乘以份量系数
-    if (food_id) {
+    // 自定义份量：前端已按实际克数计算好，直接使用
+    if (portion === '自定义') {
+      calories = parseFloat(req.body.calories || 0).toFixed(2);
+      protein = parseFloat(req.body.protein || 0).toFixed(2);
+      carbs = parseFloat(req.body.carbs || 0).toFixed(2);
+      fat = parseFloat(req.body.fat || 0).toFixed(2);
+    } else if (food_id) {
+      // 固定份量 + 有 food_id：从 foods 表获取营养数据并乘以份量系数
       const [foods] = await pool.execute('SELECT calories, protein, carbs, fat, serving_size FROM foods WHERE id = ?', [food_id]);
       if (foods.length === 0) {
         return res.status(400).json({ code: 400, data: null, message: '食物不存在' });

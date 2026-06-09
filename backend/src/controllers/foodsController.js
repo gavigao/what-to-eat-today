@@ -65,4 +65,26 @@ async function createFood(req, res, next) {
   }
 }
 
-module.exports = { searchFoods, getCategories, createFood };
+// 删除自定义食物（仅允许删除 is_custom=1 的食物）
+async function deleteFood(req, res, next) {
+  try {
+    const { id } = req.params;
+    const [result] = await pool.execute(
+      'DELETE FROM foods WHERE id = ? AND is_custom = 1',
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ code: 400, data: null, message: '食物不存在或不允许删除' });
+    }
+
+    // 同时清理关联的饮食记录（设为 NULL）
+    await pool.execute('UPDATE meals SET food_id = NULL WHERE food_id = ?', [id]);
+
+    res.json({ code: 200, data: null, message: '食物已删除' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { searchFoods, getCategories, createFood, deleteFood };

@@ -5,7 +5,8 @@ import { getMonthly, getMealDetails } from '../api/index';
 const weekDayNames = ['日', '一', '二', '三', '四', '五', '六'];
 
 function getDayOfWeek(dateStr) {
-  const d = new Date(dateStr);
+  const parts = dateStr.split('-');
+  const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
   return weekDayNames[d.getDay()];
 }
 
@@ -130,8 +131,8 @@ export default function HistoryPage() {
               {monthData.days.map((day) => {
                 const isExpanded = expandedDate === day.date;
                 const details = detailData[day.date];
-                const d = new Date(day.date + 'T00:00:00');
-                const dateLabel = `${d.getMonth() + 1}月${d.getDate()}日（周${getDayOfWeek(day.date)}）`;
+                const parts = day.date.split('-');
+                const dateLabel = `${parseInt(parts[1])}月${parseInt(parts[2])}日（周${getDayOfWeek(day.date)}）`;
 
                 return (
                   <div key={day.date} className="bg-white rounded-2xl shadow-sm border border-gray-50 overflow-hidden">

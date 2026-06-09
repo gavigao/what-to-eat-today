@@ -5,12 +5,12 @@ import FoodSearch from './FoodSearch';
 export default function MealCard({ mealType, foods, onAddMeal, onDeleteMeal }) {
   const [showSearch, setShowSearch] = useState(false);
 
-  const handleAdd = ({ food, portion }) => {
-    onAddMeal(mealType, food, portion);
+  const handleAdd = ({ food, portion, customGrams }) => {
+    onAddMeal(mealType, food, portion, customGrams);
     setShowSearch(false);
   };
 
-  const portionCoef = { '少量': 0.25, '半份': 0.5, '一份': 1.0, '多份': 1.5 };
+  const portionCoef = { '少量': 0.25, '半份': 0.5, '一份': 1.0 };
 
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-50">

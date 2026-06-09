@@ -18,6 +18,7 @@ api.interceptors.response.use(
 export const searchFoods = (q) => api.get('/foods/search', { params: { q } });
 export const getCategories = () => api.get('/foods/categories');
 export const createFood = (data) => api.post('/foods', data);
+export const deleteCustomFood = (id) => api.delete(`/foods/${id}`);
 
 // ===== 饮食记录 =====
 export const getMeals = (date) => api.get('/meals', { params: { date } });
