@@ -1,16 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import FoodSearch from './FoodSearch';
 
-export default function MealCard({ mealType, foods, onAddMeal, onDeleteMeal }) {
+export default function MealCard({ mealType, foods, onAddMeal, onDeleteMeal, recommendTrigger }) {
   const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // 当 AI 推荐点击了"去添加"时，自动打开搜索
+  useEffect(() => {
+    if (recommendTrigger && recommendTrigger.mealType === mealType) {
+      setSearchQuery(recommendTrigger.foodName);
+      setShowSearch(true);
+    }
+  }, [recommendTrigger]);
 
   const handleAdd = ({ food, portion, customGrams }) => {
     onAddMeal(mealType, food, portion, customGrams);
     setShowSearch(false);
+    setSearchQuery('');
   };
-
-  const portionCoef = { '少量': 0.25, '半份': 0.5, '一份': 1.0 };
 
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-50">
@@ -19,7 +27,7 @@ export default function MealCard({ mealType, foods, onAddMeal, onDeleteMeal }) {
         <h3 className="font-semibold text-text-main">{mealType}</h3>
         <button
           type="button"
-          onClick={() => setShowSearch(true)}
+          onClick={() => { setSearchQuery(''); setShowSearch(true); }}
           className="flex items-center gap-1 text-xs text-primary font-medium px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors"
         >
           <Plus size={14} />
@@ -57,7 +65,11 @@ export default function MealCard({ mealType, foods, onAddMeal, onDeleteMeal }) {
 
       {/* 搜索抽屉 */}
       {showSearch && (
-        <FoodSearch onAdd={handleAdd} onClose={() => setShowSearch(false)} />
+        <FoodSearch
+          onAdd={handleAdd}
+          onClose={() => { setShowSearch(false); setSearchQuery(''); }}
+          initialQuery={searchQuery}
+        />
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import MealCard from '../components/MealCard';
+import AiRecommendPanel from '../components/AiRecommendPanel';
 import { getMeals, addMeal, deleteMeal, getSummary } from '../api/index';
 
 const MEAL_TYPES = ['早餐', '午餐', '晚餐', '点心', '零食', '饮料'];
@@ -36,6 +37,7 @@ export default function TodayPage() {
   const [meals, setMeals] = useState({});
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [recommendTrigger, setRecommendTrigger] = useState(null);
 
   // 加载数据
   const loadData = useCallback(async () => {
@@ -161,6 +163,14 @@ export default function TodayPage() {
         </div>
       )}
 
+      {/* AI 推荐面板 */}
+      <AiRecommendPanel
+        date={date}
+        onSelectFood={(mealType, foodName) => {
+          setRecommendTrigger({ mealType, foodName, time: Date.now() });
+        }}
+      />
+
       {/* 餐次卡片网格 */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -177,6 +187,7 @@ export default function TodayPage() {
               foods={meals[type] || []}
               onAddMeal={handleAddMeal}
               onDeleteMeal={handleDeleteMeal}
+              recommendTrigger={recommendTrigger}
             />
           ))}
         </div>

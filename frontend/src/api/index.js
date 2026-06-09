@@ -33,6 +33,7 @@ export const getMealDetails = (date) => api.get('/meals/details', { params: { da
 export const analyzeDiet = (date) => api.post('/ai/analyze', { date });
 export const getAnalysis = (date) => api.get('/ai/analysis', { params: { date } });
 export const estimateFood = (foodName) => api.post('/ai/estimate-food', { foodName });
+export const recommendFood = (date, mealType) => api.post('/ai/recommend', { date, meal_type: mealType });
 
 // ===== 个人画像 =====
 export const getProfile = () => api.get('/profile');

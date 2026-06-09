@@ -11,8 +11,8 @@ function calcServingCal(food) {
   return food.calories * (servingSize / 100);
 }
 
-export default function FoodSearch({ onAdd, onClose }) {
-  const [query, setQuery] = useState('');
+export default function FoodSearch({ onAdd, onClose, initialQuery }) {
+  const [query, setQuery] = useState(initialQuery || '');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedFood, setSelectedFood] = useState(null);
@@ -21,6 +21,11 @@ export default function FoodSearch({ onAdd, onClose }) {
   const [showAiFallback, setShowAiFallback] = useState(false);
   const [aiEstimating, setAiEstimating] = useState(false);
   const timerRef = useRef(null);
+
+  // 初始查询自动搜索
+  useEffect(() => {
+    if (initialQuery) setQuery(initialQuery);
+  }, [initialQuery]);
 
   // 防抖搜索 300ms
   useEffect(() => {

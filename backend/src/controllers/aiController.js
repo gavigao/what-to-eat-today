@@ -259,4 +259,88 @@ async function estimateFood(req, res, next) {
   }
 }
 
-module.exports = { analyze, getAnalysis, estimateFood };
+// AI 推荐今日吃什么
+async function recommend(req, res, next) {
+  try {
+    const { date, meal_type } = req.body;
+    if (!date || !meal_type) {
+      return res.status(400).json({ code: 400, data: null, message: '缺少 date 或 meal_type 参数' });
+    }
+
+    // 获取当日已吃食物
+    const [meals] = await pool.execute(
+      'SELECT meal_type, food_name, calories FROM meals WHERE user_id = 1 AND date = ?',
+      [date]
+    );
+
+    // 获取最近7天饮食记录（避免重复推荐）
+    const [recentMeals] = await pool.execute(
+      'SELECT DISTINCT food_name FROM meals WHERE user_id = 1 AND date >= DATE_SUB(?, INTERVAL 7 DAY)',
+      [date]
+    );
+    const recentFoods = recentMeals.map(r => r.food_name).join('、') || '无';
+
+    // 获取个人画像
+    const [profiles] = await pool.execute(
+      'SELECT gender, age, height, weight, activity_level, goal FROM user_profiles WHERE user_id = 1'
+    );
+    const profile = profiles.length > 0 ? profiles[0] : null;
+    const tdeeData = profile ? calcTDEE(profile) : null;
+
+    // 计算当日已摄入汇总
+    const [[summary]] = await pool.execute(
+      'SELECT COALESCE(SUM(calories),0) as totalCalories, COALESCE(SUM(protein),0) as protein, COALESCE(SUM(carbs),0) as carbs, COALESCE(SUM(fat),0) as fat FROM meals WHERE user_id = 1 AND date = ?',
+      [date]
+    );
+
+    // 剩余预算
+    const targetCal = tdeeData ? tdeeData.targetCalories : 2000;
+    const remaining = targetCal - summary.totalCalories;
+
+    // 当日已吃食物汇总
+    const eatenToday = meals.map(m => `${m.meal_type}:${m.food_name}(${Math.round(m.calories)}kcal)`).join(', ') || '暂无';
+
+    // 获取常见食物供 AI 参考
+    const [foods] = await pool.execute(
+      "SELECT name, category, calories, protein, carbs, fat, serving_size, serving_desc FROM foods WHERE is_custom = 0 ORDER BY RAND() LIMIT 20"
+    );
+    const foodRef = foods.map(f =>
+      `${f.name}(${f.category}|${Math.round(f.calories*(f.serving_size/100))}kcal/份|蛋白${f.protein}g|碳水${f.carbs}g|脂肪${f.fat}g)`
+    ).join(', ');
+
+    const profileText = profile
+      ? `用户画像：${profile.gender}，${profile.age}岁，${profile.height}cm，${profile.weight}kg，活动水平${profile.activity_level}，目标${profile.goal}，每日推荐${targetCal}kcal`
+      : '无个人画像';
+
+    const prompt = `${profileText}。
+今日已吃：${eatenToday}。
+今日已摄入${Math.round(summary.totalCalories)}kcal，剩余预算约${Math.round(remaining)}kcal。
+已摄入蛋白质${summary.protein.toFixed(1)}g、碳水${summary.carbs.toFixed(1)}g、脂肪${summary.fat.toFixed(1)}g。
+最近7天吃过的食物：${recentFoods}（尽量避开这些，推荐没吃过的）。
+
+现在用户要吃${meal_type}，请从以下食物库中推荐 3 种合适的食物（必须从列表里选，可以组合搭配，优先推荐最近没吃过且营养互补的）：
+${foodRef}
+
+请用 JSON 格式回复，只返回 JSON，不要其他文字：
+{"reason":"一句话推荐理由","foods":[{"name":"食物名","why":"为什么推荐这个"}]}`;
+
+    const aiResponse = await callDeepSeek([
+      { role: 'system', content: '你是一位专业的营养师，根据用户的营养缺口推荐合适的食物。必须严格按 JSON 格式回复。' },
+      { role: 'user', content: prompt },
+    ], 500);
+
+    let result;
+    try {
+      const match = aiResponse.match(/\{[\s\S]*\}/);
+      result = match ? JSON.parse(match[0]) : { reason: 'AI 推荐失败', foods: [] };
+    } catch {
+      result = { reason: 'AI 推荐失败，请重试', foods: [] };
+    }
+
+    res.json({ code: 200, data: { ...result, remaining, targetCal }, message: 'ok' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { analyze, getAnalysis, estimateFood, recommend };
