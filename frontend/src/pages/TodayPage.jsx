@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import MealCard from '../components/MealCard';
 import { getMeals, addMeal, deleteMeal, getSummary } from '../api/index';
 
 const MEAL_TYPES = ['早餐', '午餐', '晚餐', '点心', '零食', '饮料'];
+const weekDayNames = ['日', '一', '二', '三', '四', '五', '六'];
 
 function getTodayStr() {
   const now = new Date();
@@ -12,8 +14,25 @@ function getTodayStr() {
   return `${y}-${m}-${d}`;
 }
 
+function shiftDate(dateStr, days) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function formatDateLabel(dateStr) {
+  const today = getTodayStr();
+  const d = new Date(dateStr + 'T00:00:00');
+  const label = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 周${weekDayNames[d.getDay()]}`;
+  if (dateStr === today) return label + '（今天）';
+  return label;
+}
+
 export default function TodayPage() {
-  const [date] = useState(getTodayStr());
+  const [date, setDate] = useState(getTodayStr());
   const [meals, setMeals] = useState({});
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -43,7 +62,6 @@ export default function TodayPage() {
     let calories, protein, carbs, fat;
 
     if (customGrams) {
-      // 自定义克数：按每100g比例直接计算
       const grams = parseFloat(customGrams);
       calories = (food.calories * (grams / 100)).toFixed(2);
       protein = ((food.protein || 0) * (grams / 100)).toFixed(2);
@@ -87,25 +105,61 @@ export default function TodayPage() {
     }
   };
 
-  // 格式化日期
-  const weekDayNames = ['日', '一', '二', '三', '四', '五', '六'];
-  const today = new Date();
-  const dateStr = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日 周${weekDayNames[today.getDay()]}`;
+  const todayStr = getTodayStr();
 
   return (
     <div>
-      {/* 日期标题 + 热量概览 */}
-      <div className="mb-5">
-        <h2 className="text-lg font-bold text-text-main">{dateStr}</h2>
-        {summary && (
-          <div className="flex items-center gap-3 mt-2">
-            <span className="text-2xl font-bold text-primary">
-              {Math.round(summary.totalCalories)}
-            </span>
-            <span className="text-sm text-text-sub">kcal · 共 {summary.mealCount} 条记录</span>
+      {/* 日期选择器 */}
+      <div className="flex items-center gap-2 mb-4">
+        <button
+          type="button"
+          onClick={() => setDate(shiftDate(date, -1))}
+          className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          <ChevronLeft size={20} className="text-text-sub" />
+        </button>
+
+        <div className="relative flex-1 flex items-center justify-center gap-2">
+          <span className="text-sm font-semibold text-text-main">
+            {formatDateLabel(date)}
+          </span>
+          <div className="relative">
+            <Calendar size={16} className="text-text-sub cursor-pointer" />
+            <input
+              type="date"
+              value={date}
+              max={todayStr}
+              onChange={(e) => setDate(e.target.value)}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
           </div>
-        )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            const next = shiftDate(date, 1);
+            if (next <= todayStr) setDate(next);
+          }}
+          disabled={date >= todayStr}
+          className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-30"
+        >
+          <ChevronRight size={20} className="text-text-sub" />
+        </button>
       </div>
+
+      {/* 热量概览 */}
+      {summary && (
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-2xl font-bold text-primary">
+            {Math.round(summary.totalCalories)}
+          </span>
+          <span className="text-sm text-text-sub">kcal · 共 {summary.mealCount} 条记录</span>
+          {date !== todayStr && (
+            <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">补录</span>
+          )}
+        </div>
+      )}
 
       {/* 餐次卡片网格 */}
       {loading ? (
