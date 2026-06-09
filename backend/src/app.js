@@ -5,6 +5,7 @@ const cors = require('cors');
 const foodsRoutes = require('./routes/foods');
 const mealsRoutes = require('./routes/meals');
 const aiRoutes = require('./routes/ai');
+const profileRoutes = require('./routes/profile');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use('/api/foods', foodsRoutes);
 app.use('/api/meals', mealsRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/profile', profileRoutes);
 
 // 全局错误中间件
 app.use((err, req, res, _next) => {

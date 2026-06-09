@@ -32,3 +32,8 @@ export const getMealDetails = (date) => api.get('/meals/details', { params: { da
 export const analyzeDiet = (date) => api.post('/ai/analyze', { date });
 export const getAnalysis = (date) => api.get('/ai/analysis', { params: { date } });
 export const estimateFood = (foodName) => api.post('/ai/estimate-food', { foodName });
+
+// ===== 个人画像 =====
+export const getProfile = () => api.get('/profile');
+export const updateProfile = (data) => api.put('/profile', data);
+export const getWeightLog = (days = 30) => api.get('/profile/weight-log', { params: { days } });

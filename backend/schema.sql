@@ -44,3 +44,27 @@ CREATE TABLE IF NOT EXISTS ai_analyses (
   created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY unique_user_date (user_id, date)
 );
+
+-- 个人画像（每用户一条记录）
+CREATE TABLE IF NOT EXISTS user_profiles (
+  id             INT AUTO_INCREMENT PRIMARY KEY,
+  user_id        INT NOT NULL DEFAULT 1 UNIQUE COMMENT '预留多用户字段',
+  gender         ENUM('男','女') NOT NULL,
+  age            INT NOT NULL COMMENT '年龄',
+  height         FLOAT NOT NULL COMMENT '身高(cm)',
+  weight         FLOAT NOT NULL COMMENT '当前体重(kg)',
+  activity_level ENUM('久坐','轻度活动','中度活动','重度活动','运动员') NOT NULL DEFAULT '久坐',
+  goal           ENUM('减脂','维持体重','增肌') NOT NULL DEFAULT '维持体重',
+  updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 体重日志（追踪体重变化）
+CREATE TABLE IF NOT EXISTS weight_logs (
+  id         INT AUTO_INCREMENT PRIMARY KEY,
+  user_id    INT NOT NULL DEFAULT 1,
+  date       DATE NOT NULL,
+  weight     FLOAT NOT NULL COMMENT '体重(kg)',
+  notes      VARCHAR(255) DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_user_date (user_id, date)
+);

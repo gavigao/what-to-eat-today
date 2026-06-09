@@ -1,13 +1,25 @@
 const pool = require('../db/index');
+const { calcTDEE } = require('./profileController');
 
-// 构建分析 Prompt
-function buildAnalysisPrompt(meals, summary) {
+// 构建分析 Prompt（含个人画像）
+function buildAnalysisPrompt(meals, summary, profile, tdeeData) {
   const mealText = Object.entries(meals)
     .map(([type, foods]) => {
       const foodList = foods.map(f => `${f.food_name}(${f.portion_size})`).join('、');
       return `${type}：${foodList}`;
     })
     .join('\n');
+
+  let profileText = '';
+  if (profile && tdeeData) {
+    profileText = `\n用户个人画像：
+- 性别：${profile.gender}，年龄：${profile.age}岁，身高：${profile.height}cm，当前体重：${profile.weight}kg
+- 活动水平：${profile.activity_level}
+- 饮食目标：${profile.goal}
+- 每日推荐热量摄入：${tdeeData.targetCalories} kcal（基于 TDEE ${tdeeData.tdee} kcal 计算）
+- 推荐营养素比例：蛋白质 ${tdeeData.macroRatio.protein.min}-${tdeeData.macroRatio.protein.max}%，碳水 ${tdeeData.macroRatio.carbs.min}-${tdeeData.macroRatio.carbs.max}%，脂肪 ${tdeeData.macroRatio.fat.min}-${tdeeData.macroRatio.fat.max}%
+`;
+  }
 
   return `今日饮食记录如下：
 ${mealText}
@@ -17,8 +29,8 @@ ${mealText}
 - 蛋白质：${summary.protein.toFixed(1)} g
 - 碳水化合物：${summary.carbs.toFixed(1)} g
 - 脂肪：${summary.fat.toFixed(1)} g
-
-请帮我分析今天吃得是否合理，并给出改善建议。`;
+${profileText}
+请结合以上数据，帮我分析今天吃得是否合理，并给出针对性的改善建议。`;
 }
 
 // 调用 DeepSeek API
@@ -104,13 +116,20 @@ async function analyze(req, res, next) {
       [date]
     );
 
+    // 获取个人画像用于个性化分析
+    const [profileRows] = await pool.execute(
+      'SELECT gender, age, height, weight, activity_level, goal FROM user_profiles WHERE user_id = 1'
+    );
+    const profile = profileRows.length > 0 ? profileRows[0] : null;
+    const tdeeData = profile ? calcTDEE(profile) : null;
+
     // 调用 DeepSeek
-    const prompt = buildAnalysisPrompt(grouped, summaryRow);
+    const prompt = buildAnalysisPrompt(grouped, summaryRow, profile, tdeeData);
+    const systemContent = profile
+      ? `你是一位专业的私人营养师，根据用户的个人画像和饮食目标来提供个性化分析。回复使用中文，格式：先给出总体评价（2-3句，需结合用户的目标和推荐热量），再列出3条具体建议（每条不超过40字，尽量具体可执行）。`
+      : '你是一位专业的营养师，帮助用户分析每日饮食结构，给出简洁、实用、友好的建议。回复使用中文，格式：先给出总体评价（2-3句），再列出3条具体建议（每条不超过40字）。';
     const aiResponse = await callDeepSeek([
-      {
-        role: 'system',
-        content: '你是一位专业的营养师，帮助用户分析每日饮食结构，给出简洁、实用、友好的建议。回复使用中文，格式：先给出总体评价（2-3句），再列出3条具体建议（每条不超过40字）。',
-      },
+      { role: 'system', content: systemContent },
       { role: 'user', content: prompt },
     ]);
 

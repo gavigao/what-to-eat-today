@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { getTrend } from '../api/index';
 
-const TARGET = 2000;
+const DEFAULT_TARGET = 2000;
 
-export default function TrendChart() {
+export default function TrendChart({ target }) {
+  const TARGET = target || DEFAULT_TARGET;
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 

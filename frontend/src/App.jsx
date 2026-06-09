@@ -1,13 +1,15 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { UtensilsCrossed, BarChart3, CalendarDays } from 'lucide-react';
+import { UtensilsCrossed, BarChart3, CalendarDays, UserCircle } from 'lucide-react';
 import TodayPage from './pages/TodayPage';
 import DashboardPage from './pages/DashboardPage';
 import HistoryPage from './pages/HistoryPage';
+import ProfilePage from './pages/ProfilePage';
 
 const navItems = [
   { to: '/', icon: UtensilsCrossed, label: '今日记录' },
-  { to: '/dashboard', icon: BarChart3, label: '饮食仪表盘' },
-  { to: '/history', icon: CalendarDays, label: '历史记录' },
+  { to: '/dashboard', icon: BarChart3, label: '仪表盘' },
+  { to: '/history', icon: CalendarDays, label: '历史' },
+  { to: '/profile', icon: UserCircle, label: '画像' },
 ];
 
 export default function App() {
@@ -48,6 +50,7 @@ export default function App() {
             <Route path="/" element={<TodayPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/history" element={<HistoryPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
           </Routes>
         </main>
 
