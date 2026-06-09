@@ -48,13 +48,14 @@ export default function MacroPieChart({ protein = 0, carbs = 0, fat = 0, macroRa
       const key = d.name === '蛋白质' ? 'protein' : d.name === '碳水化合物' ? 'carbs' : 'fat';
       const rec = ratio[key];
       const inRange = rec && pct >= rec.min && pct <= rec.max;
+      const tag = rec && !inRange ? (pct < rec.min ? '偏低' : '偏高') : null;
       return (
         <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-100 text-sm">
           <p className="font-medium">{d.name}</p>
           <p>{d.grams?.toFixed(1)}g · 占比 {pct}%</p>
           {rec && (
-            <p className={inRange ? 'text-green-500' : 'text-red-400'}>
-              推荐 {rec.min}-{rec.max}% {inRange ? '✓' : '✗'}
+            <p className={inRange ? 'text-green-500' : tag === '偏低' ? 'text-blue-500' : 'text-red-400'}>
+              推荐 {rec.min}-{rec.max}% {inRange ? '✓' : tag}
             </p>
           )}
         </div>
@@ -102,14 +103,16 @@ export default function MacroPieChart({ protein = 0, carbs = 0, fat = 0, macroRa
             const rec = ratio[key];
             const pct = totalCal > 0 ? ((d.value / totalCal) * 100).toFixed(1) : 0;
             const inRange = rec && pct >= rec.min && pct <= rec.max;
+            const deviation = rec && !inRange ? (pct < rec.min ? '偏低' : '偏高') : null;
+            const devColor = deviation === '偏低' ? 'text-blue-500' : 'text-red-400';
             return (
               <div key={d.name} className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
                 <span className="text-text-main">{d.name}</span>
                 <span className="text-text-sub ml-auto">{d.label}</span>
                 {rec && (
-                  <span className={`text-[10px] ${inRange ? 'text-green-500' : 'text-red-400'}`}>
-                    {inRange ? '✓' : '偏离'}
+                  <span className={`text-[10px] ${inRange ? 'text-green-500' : devColor}`}>
+                    {inRange ? '✓' : deviation}
                   </span>
                 )}
               </div>
