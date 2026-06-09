@@ -28,7 +28,7 @@ export default function TrendChart({ target }) {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
+      <div className="bg-white rounded-2xl p-5 card-shadow">
         <h3 className="text-sm font-semibold text-text-main mb-3">近7天热量趋势</h3>
         <div className="skeleton h-48 w-full" />
       </div>
@@ -36,7 +36,7 @@ export default function TrendChart({ target }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
+    <div className="bg-white rounded-2xl p-5 card-shadow">
       <h3 className="text-sm font-semibold text-text-main mb-3">近7天热量趋势</h3>
       {data.length === 0 ? (
         <p className="text-text-sub text-sm py-6 text-center">暂无数据</p>

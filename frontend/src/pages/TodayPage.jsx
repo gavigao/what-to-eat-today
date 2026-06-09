@@ -5,6 +5,14 @@ import AiRecommendPanel from '../components/AiRecommendPanel';
 import { getMeals, addMeal, deleteMeal, getSummary } from '../api/index';
 
 const MEAL_TYPES = ['早餐', '午餐', '晚餐', '点心', '零食', '饮料'];
+const MEAL_COLORS = {
+  '早餐': { color: '#FBBF24', icon: '🌅' },
+  '午餐': { color: '#FF6B35', icon: '☀️' },
+  '晚餐': { color: '#6366F1', icon: '🌙' },
+  '点心': { color: '#F472B6', icon: '🍪' },
+  '零食': { color: '#A78BFA', icon: '🍿' },
+  '饮料': { color: '#38BDF8', icon: '💧' },
+};
 const weekDayNames = ['日', '一', '二', '三', '四', '五', '六'];
 
 function getTodayStr() {
@@ -152,14 +160,21 @@ export default function TodayPage() {
 
       {/* 热量概览 */}
       {summary && (
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-2xl font-bold text-primary">
+        <div className="flex items-center gap-3 mb-4 animate-count">
+          <span className="stat-number" style={{ fontSize: 32, color: '#FF6B35' }}>
             {Math.round(summary.totalCalories)}
           </span>
-          <span className="text-sm text-text-sub">kcal · 共 {summary.mealCount} 条记录</span>
+          <span className="text-sm text-text-sub" style={{ fontSize: 16 }}>kcal · 共 {summary.mealCount} 条记录</span>
           {date !== todayStr && (
             <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">补录</span>
           )}
+        </div>
+      )}
+
+      {/* 整日无记录提示 */}
+      {!loading && summary && summary.mealCount === 0 && (
+        <div className="rounded-2xl p-4 mb-4 card-shadow text-center" style={{ background: '#FFF8F5' }}>
+          <p className="text-sm font-medium" style={{ color: '#FF6B35' }}>今天还没有记录，开始添加第一餐吧 🍳</p>
         </div>
       )}
 
@@ -188,6 +203,8 @@ export default function TodayPage() {
               onAddMeal={handleAddMeal}
               onDeleteMeal={handleDeleteMeal}
               recommendTrigger={recommendTrigger}
+              mealColor={MEAL_COLORS[type]?.color}
+              mealIcon={MEAL_COLORS[type]?.icon}
             />
           ))}
         </div>

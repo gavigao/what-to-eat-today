@@ -38,9 +38,9 @@ export default function AiAdvicePanel({ date }) {
 
   if (fetching) {
     return (
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
+      <div className="bg-white rounded-2xl p-5 card-shadow">
         <h3 className="text-sm font-semibold text-text-main mb-3 flex items-center gap-2">
-          <Sparkles size={16} className="text-secondary" /> AI 饮食建议
+          <Sparkles size={16} className="text-[#FF6B35]" /> AI 饮食建议
         </h3>
         <div className="skeleton h-24 w-full" />
       </div>
@@ -48,17 +48,17 @@ export default function AiAdvicePanel({ date }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
+    <div className="bg-white rounded-2xl p-5 card-shadow">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-text-main flex items-center gap-2">
-          <Sparkles size={16} className="text-secondary" /> AI 饮食建议
+          <Sparkles size={16} className="text-[#FF6B35]" /> AI 饮食建议
         </h3>
         {analysis && (
           <button
             type="button"
             onClick={handleAnalyze}
             disabled={loading}
-            className="flex items-center gap-1 text-xs text-secondary px-2.5 py-1 rounded-lg bg-secondary/10 hover:bg-secondary/20 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1 text-xs text-[#FF6B35] px-2.5 py-1 rounded-lg bg-secondary/10 hover:bg-secondary/20 transition-colors disabled:opacity-50"
           >
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
             重新分析
@@ -107,7 +107,7 @@ export default function AiAdvicePanel({ date }) {
                   .filter((s) => s.trim())
                   .map((s, i) => (
                     <div key={i} className="flex items-start gap-2 text-sm">
-                      <span className="w-5 h-5 rounded-full bg-secondary/10 text-secondary text-xs flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="w-5 h-5 rounded-full bg-secondary/10 text-[#FF6B35] text-xs flex items-center justify-center shrink-0 mt-0.5">
                         {i + 1}
                       </span>
                       <span className="text-text-main">{s.replace(/^\d+[\.\、\s]+/, '')}</span>

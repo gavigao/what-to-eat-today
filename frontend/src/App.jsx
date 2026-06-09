@@ -54,8 +54,8 @@ export default function App() {
           </Routes>
         </main>
 
-        {/* 移动端底部导航 */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-40">
+        {/* 移动端底部导航 — 毛玻璃 */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bottom-nav-glass z-40">
           <div className="flex items-center justify-around h-14">
             {navItems.map(({ to, icon: Icon, label }) => (
               <NavLink
@@ -68,8 +68,11 @@ export default function App() {
                   }`
                 }
               >
-                <Icon size={20} />
-                {label}
+                {({ isActive }) => (<>
+                  <Icon size={20} />
+                  {label}
+                  {isActive && <span className="nav-dot" />}
+                </>)}
               </NavLink>
             ))}
           </div>

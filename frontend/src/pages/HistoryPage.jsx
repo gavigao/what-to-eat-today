@@ -110,16 +110,16 @@ export default function HistoryPage() {
           {/* 月度摘要卡片 */}
           {monthData && (
             <div className="grid grid-cols-3 gap-3 mb-4">
-              <div className="bg-white rounded-xl p-3 text-center shadow-sm border border-gray-50">
-                <div className="text-xl font-bold text-primary">{monthData.stats.daysWithRecords}</div>
+              <div className="rounded-xl p-3 text-center card-shadow" style={{ background: '#EFF6FF' }}>
+                <div className="text-xl font-bold stat-number" style={{ color: '#3B82F6' }}>{monthData.stats.daysWithRecords}</div>
                 <div className="text-xs text-text-sub">记录天数</div>
               </div>
-              <div className="bg-white rounded-xl p-3 text-center shadow-sm border border-gray-50">
-                <div className="text-xl font-bold text-secondary">{monthData.stats.avgCalories}</div>
+              <div className="rounded-xl p-3 text-center card-shadow" style={{ background: '#FFF7ED' }}>
+                <div className="text-xl font-bold stat-number" style={{ color: '#FF6B35' }}>{monthData.stats.avgCalories}</div>
                 <div className="text-xs text-text-sub">平均热量(kcal)</div>
               </div>
-              <div className="bg-white rounded-xl p-3 text-center shadow-sm border border-gray-50">
-                <div className="text-xl font-bold text-red-400">{monthData.stats.maxCalories}</div>
+              <div className="rounded-xl p-3 text-center card-shadow" style={{ background: '#FFF1F2' }}>
+                <div className="text-xl font-bold stat-number" style={{ color: '#EF4444' }}>{monthData.stats.maxCalories}</div>
                 <div className="text-xs text-text-sub">最高热量(kcal)</div>
               </div>
             </div>
@@ -135,7 +135,7 @@ export default function HistoryPage() {
                 const dateLabel = `${parseInt(parts[1])}月${parseInt(parts[2])}日（周${getDayOfWeek(day.date)}）`;
 
                 return (
-                  <div key={day.date} className="bg-white rounded-2xl shadow-sm border border-gray-50 overflow-hidden">
+                  <div key={day.date} className="bg-white rounded-2xl card-shadow overflow-hidden">
                     {/* 收起状态 */}
                     <button
                       type="button"

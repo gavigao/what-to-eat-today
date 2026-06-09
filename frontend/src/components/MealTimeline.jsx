@@ -13,7 +13,7 @@ export default function MealTimeline({ meals = {} }) {
 
   if (!hasData) {
     return (
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
+      <div className="bg-white rounded-2xl p-5 card-shadow">
         <h3 className="text-sm font-semibold text-text-main mb-3">三餐时间轴</h3>
         <p className="text-text-sub text-sm py-6 text-center">暂无记录</p>
       </div>
@@ -21,7 +21,7 @@ export default function MealTimeline({ meals = {} }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50">
+    <div className="bg-white rounded-2xl p-5 card-shadow">
       <h3 className="text-sm font-semibold text-text-main mb-4">三餐时间轴</h3>
 
       <div className="relative">

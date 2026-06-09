@@ -118,7 +118,7 @@ export default function ProfilePage() {
       )}
 
       {/* 表单 */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-50 space-y-5">
+      <div className="bg-white rounded-2xl p-5 card-shadow space-y-5">
         {/* 性别 */}
         <div>
           <label className="text-sm font-medium text-text-main mb-2 block">性别</label>
