@@ -102,6 +102,7 @@ async function seed() {
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'what_to_eat',
+    charset: 'utf8mb4',
   });
 
   console.log('数据库连接成功，开始插入种子数据...');

@@ -6,12 +6,12 @@ USE what_to_eat;
 CREATE TABLE IF NOT EXISTS foods (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   name        VARCHAR(100) NOT NULL,
-  category    ENUM('主食','肉类','海鲜','蛋奶','蔬菜','水果','豆制品','坚果','零食','饮料','其他') NOT NULL,
+  category    VARCHAR(20) NOT NULL COMMENT '食物分类',
   calories    FLOAT NOT NULL COMMENT '每100g/ml热量(kcal)',
   protein     FLOAT NOT NULL COMMENT '蛋白质(g)',
   carbs       FLOAT NOT NULL COMMENT '碳水化合物(g)',
   fat         FLOAT NOT NULL COMMENT '脂肪(g)',
-  unit        ENUM('g','ml') NOT NULL DEFAULT 'g',
+  unit        VARCHAR(10) NOT NULL DEFAULT 'g' COMMENT '单位 g/ml',
   is_custom   TINYINT(1) DEFAULT 0 COMMENT '0=预置 1=用户自定义',
   created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -21,10 +21,10 @@ CREATE TABLE IF NOT EXISTS meals (
   id           INT AUTO_INCREMENT PRIMARY KEY,
   user_id      INT NOT NULL DEFAULT 1 COMMENT '预留多用户字段，当前默认1',
   date         DATE NOT NULL COMMENT '记录日期',
-  meal_type    ENUM('早餐','午餐','晚餐','点心','零食','饮料') NOT NULL,
+  meal_type    VARCHAR(10) NOT NULL COMMENT '餐次类型',
   food_id      INT COMMENT '关联foods表，NULL表示AI估算的自定义食物',
   food_name    VARCHAR(100) NOT NULL COMMENT '食物名称（冗余存储）',
-  portion_size ENUM('少量','半份','一份','多份') NOT NULL DEFAULT '一份',
+  portion_size VARCHAR(10) NOT NULL DEFAULT '一份' COMMENT '份量',
   calories     FLOAT NOT NULL COMMENT '本条记录实际热量',
   protein      FLOAT NOT NULL,
   carbs        FLOAT NOT NULL,
@@ -49,12 +49,12 @@ CREATE TABLE IF NOT EXISTS ai_analyses (
 CREATE TABLE IF NOT EXISTS user_profiles (
   id             INT AUTO_INCREMENT PRIMARY KEY,
   user_id        INT NOT NULL DEFAULT 1 UNIQUE COMMENT '预留多用户字段',
-  gender         ENUM('男','女') NOT NULL,
+  gender         VARCHAR(5) NOT NULL COMMENT '性别',
   age            INT NOT NULL COMMENT '年龄',
   height         FLOAT NOT NULL COMMENT '身高(cm)',
   weight         FLOAT NOT NULL COMMENT '当前体重(kg)',
-  activity_level ENUM('久坐','轻度活动','中度活动','重度活动','运动员') NOT NULL DEFAULT '久坐',
-  goal           ENUM('减脂','维持体重','增肌') NOT NULL DEFAULT '维持体重',
+  activity_level VARCHAR(10) NOT NULL DEFAULT '久坐' COMMENT '活动水平',
+  goal           VARCHAR(10) NOT NULL DEFAULT '维持体重' COMMENT '饮食目标',
   updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
