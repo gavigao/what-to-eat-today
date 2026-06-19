@@ -4,13 +4,12 @@ import MealCard from '../components/MealCard';
 import AiRecommendPanel from '../components/AiRecommendPanel';
 import { getMeals, addMeal, deleteMeal, getSummary } from '../api/index';
 
-const MEAL_TYPES = ['早餐', '午餐', '晚餐', '点心', '零食', '饮料'];
+const MEAL_TYPES = ['早餐', '午餐', '晚餐', '零食', '饮料'];
 const MEAL_COLORS = {
   '早餐': { color: '#FBBF24', icon: '🌅' },
   '午餐': { color: '#FF6B35', icon: '☀️' },
   '晚餐': { color: '#6366F1', icon: '🌙' },
-  '点心': { color: '#F472B6', icon: '🍪' },
-  '零食': { color: '#A78BFA', icon: '🍿' },
+  '零食': { color: '#F472B6', icon: '🍪' },
   '饮料': { color: '#38BDF8', icon: '💧' },
 };
 const weekDayNames = ['日', '一', '二', '三', '四', '五', '六'];

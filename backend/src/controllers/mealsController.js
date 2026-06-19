@@ -223,7 +223,7 @@ async function getMealDetails(req, res, next) {
 
     const [rows] = await pool.execute(
       `SELECT id, meal_type, food_name, portion_size, calories
-       FROM meals WHERE user_id = 1 AND date = ? ORDER BY FIELD(meal_type, '早餐','午餐','晚餐','点心','零食','饮料'), created_at ASC`,
+       FROM meals WHERE user_id = 1 AND date = ? ORDER BY FIELD(meal_type, '早餐','午餐','晚餐','零食','饮料'), created_at ASC`,
       [date]
     );
 

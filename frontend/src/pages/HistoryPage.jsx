@@ -73,7 +73,7 @@ export default function HistoryPage() {
 
   const isCurrentOrFuture = year >= now.getFullYear() && month >= now.getMonth() + 1;
 
-  const ORDER = ['早餐', '午餐', '晚餐', '点心', '零食', '饮料'];
+  const ORDER = ['早餐', '午餐', '晚餐', '零食', '饮料'];
 
   return (
     <div>
