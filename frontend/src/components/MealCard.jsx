@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import FoodSearch from './FoodSearch';
 
-export default function MealCard({ mealType, foods, onAddMeal, onDeleteMeal, recommendTrigger, mealColor, mealIcon }) {
+export default function MealCard({ mealType, foods, onAddMeal, onDeleteMeal, recommendTrigger, mealColor, mealIcon, readOnly }) {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const borderColor = mealColor || '#FF6B35';
@@ -34,14 +34,16 @@ export default function MealCard({ mealType, foods, onAddMeal, onDeleteMeal, rec
           {mealIcon && <span className="text-sm">{mealIcon}</span>}
           <h3 className="font-semibold text-text-main">{mealType}</h3>
         </div>
-        <button
-          type="button"
-          onClick={() => { setSearchQuery(''); setShowSearch(true); }}
-          className="flex items-center gap-1 text-xs text-white font-medium px-2.5 py-1 rounded-lg bg-[#FF6B35] hover:bg-[#FF5A20] transition-colors"
-        >
-          <Plus size={14} />
-          添加
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={() => { setSearchQuery(''); setShowSearch(true); }}
+            className="flex items-center gap-1 text-xs text-white font-medium px-2.5 py-1 rounded-lg bg-[#FF6B35] hover:bg-[#FF5A20] transition-colors"
+          >
+            <Plus size={14} />
+            添加
+          </button>
+        )}
       </div>
 
       {/* 食物列表 */}
@@ -57,13 +59,15 @@ export default function MealCard({ mealType, foods, onAddMeal, onDeleteMeal, rec
                 <span className="text-primary font-medium text-xs whitespace-nowrap stat-number">
                   {Math.round(item.calories)} kcal
                 </span>
-                <button
-                  type="button"
-                  onClick={() => onDeleteMeal(item.id)}
-                  className="p-1 rounded hover:bg-red-50 transition-colors"
-                >
-                  <Trash2 size={14} className="text-red-400 hover:text-red-500" />
-                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    onClick={() => onDeleteMeal(item.id)}
+                    className="p-1 rounded hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 size={14} className="text-red-400 hover:text-red-500" />
+                  </button>
+                )}
               </div>
             </li>
           ))}
@@ -78,7 +82,7 @@ export default function MealCard({ mealType, foods, onAddMeal, onDeleteMeal, rec
             <line x1="2" y1="12" x2="7" y2="12" />
             <line x1="17" y1="12" x2="22" y2="12" />
           </svg>
-          <p className="text-xs" style={{ color: '#9CA3AF' }}>还没有记录，点击添加</p>
+          <p className="text-xs" style={{ color: '#9CA3AF' }}>{readOnly ? '暂无记录' : '还没有记录，点击添加'}</p>
         </div>
       )}
 
