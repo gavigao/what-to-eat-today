@@ -206,4 +206,44 @@ async function logout(req, res, next) {
   }
 }
 
-module.exports = { register, login, refresh, logout };
+// PUT /api/auth/account — 修改用户名/密码（需验证当前密码）
+async function updateAccount(req, res, next) {
+  try {
+    const { currentPassword, newUsername, newPassword } = req.body;
+    const userId = req.user.id;
+
+    // 获取当前用户信息
+    const [rows] = await pool.execute('SELECT * FROM users WHERE id = ?', [userId]);
+    const user = rows[0];
+
+    // 验证当前密码
+    const match = await bcrypt.compare(currentPassword || '', user.password_hash);
+    if (!match) {
+      return res.status(400).json({ code: 400, data: null, message: '当前密码错误' });
+    }
+
+    // 改用户名
+    if (newUsername && newUsername !== user.username) {
+      const [dup] = await pool.execute('SELECT id FROM users WHERE username = ?', [newUsername]);
+      if (dup.length > 0) {
+        return res.status(409).json({ code: 409, data: null, message: '用户名已被占用' });
+      }
+      await pool.execute('UPDATE users SET username = ? WHERE id = ?', [newUsername, userId]);
+    }
+
+    // 改密码
+    if (newPassword) {
+      if (newPassword.length < 6) {
+        return res.status(400).json({ code: 400, data: null, message: '新密码至少6位' });
+      }
+      const hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+      await pool.execute('UPDATE users SET password_hash = ? WHERE id = ?', [hash, userId]);
+    }
+
+    res.json({ code: 200, data: { username: newUsername || user.username }, message: '账号信息已更新' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { register, login, refresh, logout, updateAccount };

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Save, TrendingUp, TrendingDown, LogOut } from 'lucide-react';
+import { Save, TrendingUp, TrendingDown, LogOut, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getProfile, updateProfile } from '../api/index';
+import { updateAccount } from '../api/auth';
 
 const ACTIVITY_LEVELS = [
   { value: '久坐', label: '久坐不动', desc: '几乎不运动，长时间坐着工作' },
@@ -122,6 +123,9 @@ export default function ProfilePage() {
           </button>
         </div>
       )}
+
+      {/* 修改账号 */}
+      {user && <AccountSettings user={user} />}
 
       {/* TDEE 结果卡片 */}
       {tdeeData && (
@@ -284,6 +288,102 @@ export default function ProfilePage() {
           {saving ? '保存中...' : '保存个人画像'}
         </button>
       </div>
+    </div>
+  );
+}
+
+// 修改账号子组件
+function AccountSettings({ user }) {
+  const [showEdit, setShowEdit] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  const handleSave = async () => {
+    if (!currentPassword) { setMsg('请输入当前密码'); return; }
+    if (!newUsername.trim() && !newPassword) { setMsg('至少填写一项要修改的内容'); return; }
+    setSaving(true);
+    setMsg('');
+    try {
+      const res = await updateAccount({
+        currentPassword,
+        newUsername: newUsername.trim() || undefined,
+        newPassword: newPassword || undefined,
+      });
+      setMsg('修改成功！');
+      setNewPassword('');
+      setCurrentPassword('');
+      if (res.data.username) user.username = res.data.username;
+    } catch (err) {
+      setMsg(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl p-5 card-shadow">
+      <button
+        type="button"
+        onClick={() => setShowEdit(!showEdit)}
+        className="flex items-center gap-2 text-sm font-medium text-text-main w-full"
+      >
+        <Settings size={16} className="text-text-sub" />
+        修改账号
+        <span className="text-xs text-text-sub ml-auto">{showEdit ? '收起 ▲' : '展开 ▼'}</span>
+      </button>
+
+      {showEdit && (
+        <div className="mt-4 space-y-3 border-t border-gray-50 pt-4">
+          <div>
+            <label className="text-xs text-text-sub mb-1 block">新用户名</label>
+            <input
+              type="text"
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+              placeholder={user.username}
+              className="w-full px-3 py-2 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-text-sub mb-1 block">当前密码（必填）</label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="验证身份"
+              className="w-full px-3 py-2 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-text-sub mb-1 block">新密码（不填则不修改）</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="至少6位"
+              className="w-full px-3 py-2 bg-gray-50 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+
+          {msg && (
+            <div className={`text-sm rounded-lg px-3 py-2 ${msg.includes('成功') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+              {msg}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full py-2 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary/90 disabled:opacity-50"
+          >
+            {saving ? '保存中...' : '确认修改'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

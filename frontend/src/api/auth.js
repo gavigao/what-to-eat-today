@@ -11,3 +11,5 @@ export const refreshApi = (refreshToken) =>
 
 export const logoutApi = (refreshToken) =>
   api.post('/auth/logout', { refreshToken });
+
+export const updateAccount = (data) => api.put('/auth/account', data);
