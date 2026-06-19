@@ -14,15 +14,6 @@ async function createFamily(req, res, next) {
       return res.status(400).json({ code: 400, data: null, message: '请输入家庭名称' });
     }
 
-    // 检查用户是否已有家庭
-    const [existing] = await pool.execute(
-      'SELECT family_id FROM family_members WHERE user_id = ?',
-      [req.user.id]
-    );
-    if (existing.length > 0) {
-      return res.status(400).json({ code: 400, data: null, message: '你已在一个家庭中，请先退出再加入新家庭' });
-    }
-
     // 生成唯一配对码
     let pairingCode;
     let attempts = 0;
@@ -66,15 +57,6 @@ async function joinFamily(req, res, next) {
       return res.status(400).json({ code: 400, data: null, message: '请输入配对码' });
     }
 
-    // 检查用户是否已有家庭
-    const [existing] = await pool.execute(
-      'SELECT family_id FROM family_members WHERE user_id = ?',
-      [req.user.id]
-    );
-    if (existing.length > 0) {
-      return res.status(400).json({ code: 400, data: null, message: '你已在一个家庭中，请先退出再加入新家庭' });
-    }
-
     // 查找家庭
     const [families] = await pool.execute(
       'SELECT id, name FROM families WHERE pairing_code = ?',
@@ -82,6 +64,15 @@ async function joinFamily(req, res, next) {
     );
     if (families.length === 0) {
       return res.status(400).json({ code: 400, data: null, message: '配对码无效' });
+    }
+
+    // 检查是否已在同一家庭中
+    const [existing] = await pool.execute(
+      'SELECT id FROM family_members WHERE family_id = ? AND user_id = ?',
+      [families[0].id, req.user.id]
+    );
+    if (existing.length > 0) {
+      return res.status(400).json({ code: 400, data: null, message: '你已在这个家庭中' });
     }
 
     // 加入
@@ -100,83 +91,95 @@ async function joinFamily(req, res, next) {
   }
 }
 
-// GET /api/family/mine — 获取我的家庭信息
+// GET /api/family/mine — 获取我加入的所有家庭
 async function getMyFamily(req, res, next) {
   try {
-    const [members] = await pool.execute(
-      `SELECT u.id, u.username, fm.role, fm.joined_at
-       FROM family_members fm
-       JOIN users u ON fm.user_id = u.id
-       WHERE fm.family_id = (
-         SELECT family_id FROM family_members WHERE user_id = ?
-       )`,
+    // 获取我加入的所有家庭 ID
+    const [myFamilies] = await pool.execute(
+      'SELECT family_id FROM family_members WHERE user_id = ?',
       [req.user.id]
     );
 
-    if (members.length === 0) {
-      return res.json({ code: 200, data: null, message: '尚未加入家庭' });
+    if (myFamilies.length === 0) {
+      return res.json({ code: 200, data: [], message: '尚未加入家庭' });
     }
 
+    const familyIds = myFamilies.map(f => f.family_id);
+
+    // 获取所有家庭的信息
     const [familyRows] = await pool.execute(
       `SELECT f.id, f.name, f.pairing_code, f.created_at, u.username as owner_name
        FROM families f
        JOIN family_members fm ON f.id = fm.family_id AND fm.role = 'owner'
        JOIN users u ON fm.user_id = u.id
-       WHERE f.id = (SELECT family_id FROM family_members WHERE user_id = ?)`,
-      [req.user.id]
+       WHERE f.id IN (${familyIds.map(() => '?').join(',')})`,
+      familyIds
     );
 
-    res.json({
-      code: 200,
-      data: {
-        family: familyRows[0],
-        members: members.map(m => ({
+    // 获取每个家庭的成员
+    const [allMembers] = await pool.execute(
+      `SELECT fm.family_id, u.id, u.username, fm.role, fm.joined_at
+       FROM family_members fm
+       JOIN users u ON fm.user_id = u.id
+       WHERE fm.family_id IN (${familyIds.map(() => '?').join(',')})
+       ORDER BY fm.joined_at ASC`,
+      familyIds
+    );
+
+    // 按家庭分组
+    const families = familyRows.map(f => ({
+      ...f,
+      members: allMembers
+        .filter(m => m.family_id === f.id)
+        .map(m => ({
           id: m.id,
           username: m.username,
           role: m.role,
           joinedAt: m.joined_at,
         })),
-      },
-      message: 'ok',
-    });
+    }));
+
+    res.json({ code: 200, data: families, message: 'ok' });
   } catch (err) {
     next(err);
   }
 }
 
-// POST /api/family/leave — 退出家庭
+// POST /api/family/:familyId/leave — 退出指定家庭
 async function leaveFamily(req, res, next) {
   try {
+    const familyId = parseInt(req.params.familyId, 10);
+
     const [existing] = await pool.execute(
-      'SELECT fm.family_id, fm.role FROM family_members fm WHERE fm.user_id = ?',
-      [req.user.id]
+      'SELECT fm.role FROM family_members fm WHERE fm.family_id = ? AND fm.user_id = ?',
+      [familyId, req.user.id]
     );
     if (existing.length === 0) {
-      return res.status(400).json({ code: 400, data: null, message: '你不在任何家庭中' });
+      return res.status(400).json({ code: 400, data: null, message: '你不在这个家庭中' });
     }
 
-    const { family_id, role } = existing[0];
+    const { role } = existing[0];
 
     if (role === 'owner') {
       // 找最早加入的其他成员
       const [others] = await pool.execute(
         'SELECT user_id FROM family_members WHERE family_id = ? AND user_id != ? ORDER BY joined_at ASC LIMIT 1',
-        [family_id, req.user.id]
+        [familyId, req.user.id]
       );
       if (others.length > 0) {
         // 转移 owner
         await pool.execute(
           'UPDATE family_members SET role = ? WHERE family_id = ? AND user_id = ?',
-          ['owner', family_id, others[0].user_id]
+          ['owner', familyId, others[0].user_id]
         );
       } else {
         // 没有其他成员，解散家庭
-        await pool.execute('DELETE FROM families WHERE id = ?', [family_id]);
+        await pool.execute('DELETE FROM families WHERE id = ?', [familyId]);
       }
     }
 
     // 删除成员记录
-    await pool.execute('DELETE FROM family_members WHERE user_id = ?', [req.user.id]);
+    await pool.execute('DELETE FROM family_members WHERE family_id = ? AND user_id = ?', [familyId, req.user.id]);
 
     res.json({ code: 200, data: null, message: '已退出家庭' });
   } catch (err) {
@@ -194,11 +197,11 @@ async function getFamilyMemberMeals(req, res, next) {
       return res.status(400).json({ code: 400, data: null, message: '缺少 date 参数' });
     }
 
-    // 验证两人属于同一个家庭
+    // 验证两人属于同一个家庭（任意一个）
     const [sameFamily] = await pool.execute(
-      `SELECT 1 FROM family_members WHERE family_id = (
-         SELECT family_id FROM family_members WHERE user_id = ?
-       ) AND user_id = ?`,
+      `SELECT 1 FROM family_members
+       WHERE family_id IN (SELECT family_id FROM family_members WHERE user_id = ?)
+       AND user_id = ?`,
       [req.user.id, targetUserId]
     );
     if (sameFamily.length === 0) {

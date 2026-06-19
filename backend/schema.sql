@@ -68,7 +68,8 @@ CREATE TABLE IF NOT EXISTS family_members (
   FOREIGN KEY (family_id) REFERENCES families(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   UNIQUE KEY uq_family_user (family_id, user_id),
-  UNIQUE KEY uq_user (user_id)
+  INDEX idx_user (user_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ===== 业务表 =====

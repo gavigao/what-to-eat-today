@@ -8,7 +8,7 @@ router.use(authenticate);
 router.post('/create', createFamily);
 router.post('/join', joinFamily);
 router.get('/mine', getMyFamily);
-router.post('/leave', leaveFamily);
+router.post('/:familyId/leave', leaveFamily);
 router.get('/members/:userId/meals', getFamilyMemberMeals);
 
 module.exports = router;
