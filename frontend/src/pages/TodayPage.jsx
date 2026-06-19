@@ -69,7 +69,7 @@ export default function TodayPage() {
   // 加载家庭列表
   useEffect(() => {
     getMyFamily()
-      .then((families) => setFamilyMembers(mergeFamilyMembers(Array.isArray(families) ? families : [], null)))
+      .then((res) => setFamilyMembers(mergeFamilyMembers(res.data || [], null)))
       .catch(() => {});
   }, []);
 
