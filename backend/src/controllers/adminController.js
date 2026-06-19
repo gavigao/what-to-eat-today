@@ -10,8 +10,7 @@ async function listUsers(req, res, next) {
 
     const [rows] = await pool.execute(
       `SELECT id, username, email, role, created_at
-       FROM users ORDER BY id ASC LIMIT ? OFFSET ?`,
-      [limit, offset]
+       FROM users ORDER BY id ASC LIMIT ${limit} OFFSET ${offset}`
     );
 
     const [[totalRow]] = await pool.execute('SELECT COUNT(*) as total FROM users');
