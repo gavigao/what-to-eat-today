@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Save, TrendingUp, TrendingDown } from 'lucide-react';
+import { Save, TrendingUp, TrendingDown, LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { getProfile, updateProfile } from '../api/index';
 
 const ACTIVITY_LEVELS = [
@@ -17,6 +18,7 @@ const GOALS = [
 ];
 
 export default function ProfilePage() {
+  const { user, logout } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -101,6 +103,25 @@ export default function ProfilePage() {
   return (
     <div className="space-y-5">
       <h2 className="text-lg font-bold text-text-main">个人画像</h2>
+
+      {/* 用户信息 + 退出 */}
+      {user && (
+        <div className="bg-white rounded-2xl p-4 card-shadow flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-text-main">{user.username}</p>
+            <p className="text-xs text-text-sub">
+              {user.role === 'admin' ? '管理员' : '普通用户'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={logout}
+            className="flex items-center gap-1.5 text-xs font-medium text-red-500 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors"
+          >
+            <LogOut size={14} /> 退出登录
+          </button>
+        </div>
+      )}
 
       {/* TDEE 结果卡片 */}
       {tdeeData && (

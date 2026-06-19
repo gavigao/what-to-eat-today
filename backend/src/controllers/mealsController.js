@@ -19,8 +19,8 @@ async function getMeals(req, res, next) {
     const [rows] = await pool.execute(
       `SELECT id, user_id, date, meal_type, food_id, food_name, portion_size,
               calories, protein, carbs, fat, notes, created_at
-       FROM meals WHERE user_id = 1 AND date = ? ORDER BY created_at ASC`,
-      [date]
+       FROM meals WHERE user_id = ? AND date = ? ORDER BY created_at ASC`,
+      [req.user.id, date]
     );
 
     // 按 meal_type 分组
@@ -78,8 +78,8 @@ async function createMeal(req, res, next) {
 
     const [result] = await pool.execute(
       `INSERT INTO meals (user_id, date, meal_type, food_id, food_name, portion_size, calories, protein, carbs, fat, notes)
-       VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [date, meal_type, food_id || null, food_name, portion, calories, protein, carbs, fat, notes || null]
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [req.user.id, date, meal_type, food_id || null, food_name, portion, calories, protein, carbs, fat, notes || null]
     );
 
     res.json({
@@ -101,7 +101,7 @@ async function createMeal(req, res, next) {
 async function deleteMeal(req, res, next) {
   try {
     const { id } = req.params;
-    const [result] = await pool.execute('DELETE FROM meals WHERE id = ? AND user_id = 1', [id]);
+    const [result] = await pool.execute('DELETE FROM meals WHERE id = ? AND user_id = ?', [id, req.user.id]);
 
     if (result.affectedRows === 0) {
       return res.status(400).json({ code: 400, data: null, message: '记录不存在' });
@@ -128,8 +128,8 @@ async function getSummary(req, res, next) {
         COALESCE(SUM(carbs), 0) as carbs,
         COALESCE(SUM(fat), 0) as fat,
         COUNT(*) as mealCount
-       FROM meals WHERE user_id = 1 AND date = ?`,
-      [date]
+       FROM meals WHERE user_id = ? AND date = ?`,
+      [req.user.id, date]
     );
 
     res.json({
@@ -155,9 +155,9 @@ async function getTrend(req, res, next) {
 
     const [rows] = await pool.execute(
       `SELECT date, SUM(calories) as totalCalories
-       FROM meals WHERE user_id = 1 AND date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+       FROM meals WHERE user_id = ? AND date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
        GROUP BY date ORDER BY date ASC`,
-      [days]
+      [req.user.id, days]
     );
 
     res.json({ code: 200, data: rows, message: 'ok' });
@@ -181,9 +181,9 @@ async function getMonthly(req, res, next) {
     // 查询该月所有有记录的日子
     const [rows] = await pool.execute(
       `SELECT date, SUM(calories) as totalCalories, COUNT(*) as mealCount
-       FROM meals WHERE user_id = 1 AND date >= ? AND date <= ?
+       FROM meals WHERE user_id = ? AND date >= ? AND date <= ?
        GROUP BY date ORDER BY date DESC`,
-      [startDate, endDate]
+      [req.user.id, startDate, endDate]
     );
 
     // 计算月度统计
@@ -223,8 +223,8 @@ async function getMealDetails(req, res, next) {
 
     const [rows] = await pool.execute(
       `SELECT id, meal_type, food_name, portion_size, calories
-       FROM meals WHERE user_id = 1 AND date = ? ORDER BY FIELD(meal_type, '早餐','午餐','晚餐','零食','饮料'), created_at ASC`,
-      [date]
+       FROM meals WHERE user_id = ? AND date = ? ORDER BY FIELD(meal_type, '早餐','午餐','晚餐','零食','饮料'), created_at ASC`,
+      [req.user.id, date]
     );
 
     // 按 meal_type 分组

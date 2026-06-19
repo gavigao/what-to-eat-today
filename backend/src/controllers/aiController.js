@@ -1,5 +1,6 @@
 const pool = require('../db/index');
 const { calcTDEE } = require('./profileController');
+const { incrementAiUsage } = require('../middleware/aiQuota');
 
 // 构建分析 Prompt（含个人画像）
 function buildAnalysisPrompt(meals, summary, profile, tdeeData) {
@@ -67,14 +68,14 @@ async function analyze(req, res, next) {
 
     // 查询缓存分析时间
     const [cached] = await pool.execute(
-      'SELECT analysis, suggestions, created_at FROM ai_analyses WHERE user_id = 1 AND date = ?',
-      [date]
+      'SELECT analysis, suggestions, created_at FROM ai_analyses WHERE user_id = ? AND date = ?',
+      [req.user.id, date]
     );
 
     // 查询最后一次饮食变动时间
     const [mealRows] = await pool.execute(
-      'SELECT MAX(created_at) as lastMealTime FROM meals WHERE user_id = 1 AND date = ?',
-      [date]
+      'SELECT MAX(created_at) as lastMealTime FROM meals WHERE user_id = ? AND date = ?',
+      [req.user.id, date]
     );
 
     const lastMealTime = mealRows[0]?.lastMealTime;
@@ -90,8 +91,8 @@ async function analyze(req, res, next) {
 
     // 获取当日饮食数据
     const [meals] = await pool.execute(
-      'SELECT meal_type, food_name, portion_size FROM meals WHERE user_id = 1 AND date = ?',
-      [date]
+      'SELECT meal_type, food_name, portion_size FROM meals WHERE user_id = ? AND date = ?',
+      [req.user.id, date]
     );
 
     if (meals.length === 0) {
@@ -112,13 +113,14 @@ async function analyze(req, res, next) {
         COALESCE(SUM(protein), 0) as protein,
         COALESCE(SUM(carbs), 0) as carbs,
         COALESCE(SUM(fat), 0) as fat
-       FROM meals WHERE user_id = 1 AND date = ?`,
-      [date]
+       FROM meals WHERE user_id = ? AND date = ?`,
+      [req.user.id, date]
     );
 
     // 获取个人画像用于个性化分析
     const [profileRows] = await pool.execute(
-      'SELECT gender, age, height, weight, activity_level, goal FROM user_profiles WHERE user_id = 1'
+      'SELECT gender, age, height, weight, activity_level, goal FROM user_profiles WHERE user_id = ?',
+      [req.user.id]
     );
     const profile = profileRows.length > 0 ? profileRows[0] : null;
     const tdeeData = profile ? calcTDEE(profile) : null;
@@ -133,6 +135,10 @@ async function analyze(req, res, next) {
       { role: 'user', content: prompt },
     ]);
 
+    // AI 调用成功，递增配额计数
+    await incrementAiUsage(req.user.id);
+    const quotaRemaining = (req.aiQuota.limit - req.aiQuota.used - 1);
+
     // 拆分总体评价和建议
     const lines = aiResponse.split('\n').filter(l => l.trim());
     const analysis = lines.slice(0, 2).join('\n') || aiResponse;
@@ -141,12 +147,16 @@ async function analyze(req, res, next) {
     // UPSERT
     await pool.execute(
       `INSERT INTO ai_analyses (user_id, date, analysis, suggestions)
-       VALUES (1, ?, ?, ?)
+       VALUES (?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE analysis = VALUES(analysis), suggestions = VALUES(suggestions), created_at = CURRENT_TIMESTAMP`,
-      [date, analysis, suggestions]
+      [req.user.id, date, analysis, suggestions]
     );
 
-    res.json({ code: 200, data: { analysis, suggestions, cached: false }, message: 'ok' });
+    res.json({
+      code: 200,
+      data: { analysis, suggestions, cached: false, aiRemaining: quotaRemaining },
+      message: 'ok',
+    });
   } catch (err) {
     next(err);
   }
@@ -161,8 +171,8 @@ async function getAnalysis(req, res, next) {
     }
 
     const [rows] = await pool.execute(
-      'SELECT analysis, suggestions, created_at FROM ai_analyses WHERE user_id = 1 AND date = ?',
-      [date]
+      'SELECT analysis, suggestions, created_at FROM ai_analyses WHERE user_id = ? AND date = ?',
+      [req.user.id, date]
     );
 
     if (rows.length === 0) {
@@ -198,6 +208,10 @@ async function estimateFood(req, res, next) {
       { role: 'system', content: '你是一位专业的营养数据专家。你必须严格按 JSON 格式回复，不要包含任何解释。' },
       { role: 'user', content: prompt },
     ], 300);
+
+    // AI 调用成功，递增配额计数
+    await incrementAiUsage(req.user.id);
+    const quotaRemaining = (req.aiQuota.limit - req.aiQuota.used - 1);
 
     // 解析 AI 返回的 JSON
     let nutrition;
@@ -269,28 +283,29 @@ async function recommend(req, res, next) {
 
     // 获取当日已吃食物
     const [meals] = await pool.execute(
-      'SELECT meal_type, food_name, calories FROM meals WHERE user_id = 1 AND date = ?',
-      [date]
+      'SELECT meal_type, food_name, calories FROM meals WHERE user_id = ? AND date = ?',
+      [req.user.id, date]
     );
 
     // 获取最近7天饮食记录（避免重复推荐）
     const [recentMeals] = await pool.execute(
-      'SELECT DISTINCT food_name FROM meals WHERE user_id = 1 AND date >= DATE_SUB(?, INTERVAL 7 DAY)',
-      [date]
+      'SELECT DISTINCT food_name FROM meals WHERE user_id = ? AND date >= DATE_SUB(?, INTERVAL 7 DAY)',
+      [req.user.id, date]
     );
     const recentFoods = recentMeals.map(r => r.food_name).join('、') || '无';
 
     // 获取个人画像
     const [profiles] = await pool.execute(
-      'SELECT gender, age, height, weight, activity_level, goal FROM user_profiles WHERE user_id = 1'
+      'SELECT gender, age, height, weight, activity_level, goal FROM user_profiles WHERE user_id = ?',
+      [req.user.id]
     );
     const profile = profiles.length > 0 ? profiles[0] : null;
     const tdeeData = profile ? calcTDEE(profile) : null;
 
     // 计算当日已摄入汇总
     const [[summary]] = await pool.execute(
-      'SELECT COALESCE(SUM(calories),0) as totalCalories, COALESCE(SUM(protein),0) as protein, COALESCE(SUM(carbs),0) as carbs, COALESCE(SUM(fat),0) as fat FROM meals WHERE user_id = 1 AND date = ?',
-      [date]
+      'SELECT COALESCE(SUM(calories),0) as totalCalories, COALESCE(SUM(protein),0) as protein, COALESCE(SUM(carbs),0) as carbs, COALESCE(SUM(fat),0) as fat FROM meals WHERE user_id = ? AND date = ?',
+      [req.user.id, date]
     );
 
     // 剩余预算
@@ -323,6 +338,10 @@ async function recommend(req, res, next) {
       { role: 'user', content: prompt },
     ], 500);
 
+    // AI 调用成功，递增配额计数
+    await incrementAiUsage(req.user.id);
+    const quotaRemaining = (req.aiQuota.limit - req.aiQuota.used - 1);
+
     let result;
     try {
       const match = aiResponse.match(/\{[\s\S]*\}/);
@@ -331,7 +350,7 @@ async function recommend(req, res, next) {
       result = { reason: 'AI 推荐失败，请重试', foods: [] };
     }
 
-    res.json({ code: 200, data: { ...result, remaining, targetCal }, message: 'ok' });
+    res.json({ code: 200, data: { ...result, remaining, targetCal, aiRemaining: quotaRemaining }, message: 'ok' });
   } catch (err) {
     next(err);
   }

@@ -48,7 +48,8 @@ function calcTDEE(profile) {
 async function getProfile(req, res, next) {
   try {
     const [rows] = await pool.execute(
-      'SELECT gender, age, height, weight, activity_level, goal, updated_at FROM user_profiles WHERE user_id = 1'
+      'SELECT gender, age, height, weight, activity_level, goal, updated_at FROM user_profiles WHERE user_id = ?',
+      [req.user.id]
     );
     if (rows.length === 0) {
       return res.json({ code: 200, data: null, message: '未设置个人画像' });
@@ -72,17 +73,17 @@ async function updateProfile(req, res, next) {
 
     // 记录体重日志
     await pool.execute(
-      'INSERT INTO weight_logs (user_id, date, weight) VALUES (1, CURDATE(), ?) ON DUPLICATE KEY UPDATE weight = VALUES(weight)',
-      [parseFloat(weight).toFixed(1)]
+      'INSERT INTO weight_logs (user_id, date, weight) VALUES (?, CURDATE(), ?) ON DUPLICATE KEY UPDATE weight = VALUES(weight)',
+      [req.user.id, parseFloat(weight).toFixed(1)]
     );
 
     // UPSERT 画像
     await pool.execute(
       `INSERT INTO user_profiles (user_id, gender, age, height, weight, activity_level, goal)
-       VALUES (1, ?, ?, ?, ?, ?, ?)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE gender=VALUES(gender), age=VALUES(age), height=VALUES(height),
                                weight=VALUES(weight), activity_level=VALUES(activity_level), goal=VALUES(goal)`,
-      [gender, parseInt(age), parseFloat(height), parseFloat(weight), activity_level || '久坐', goal || '维持体重']
+      [req.user.id, gender, parseInt(age), parseFloat(height), parseFloat(weight), activity_level || '久坐', goal || '维持体重']
     );
 
     const profile = { gender, age: parseInt(age), height: parseFloat(height), weight: parseFloat(weight), activity_level: activity_level || '久坐', goal: goal || '维持体重' };
@@ -99,8 +100,8 @@ async function getWeightLog(req, res, next) {
   try {
     const days = parseInt(req.query.days, 10) || 30;
     const [rows] = await pool.execute(
-      'SELECT date, weight FROM weight_logs WHERE user_id = 1 AND date >= DATE_SUB(CURDATE(), INTERVAL ? DAY) ORDER BY date ASC',
-      [days]
+      'SELECT date, weight FROM weight_logs WHERE user_id = ? AND date >= DATE_SUB(CURDATE(), INTERVAL ? DAY) ORDER BY date ASC',
+      [req.user.id, days]
     );
     res.json({ code: 200, data: rows, message: 'ok' });
   } catch (err) {
