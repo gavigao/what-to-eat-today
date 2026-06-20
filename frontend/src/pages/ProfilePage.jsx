@@ -3,6 +3,7 @@ import { Save, TrendingUp, TrendingDown, LogOut, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getProfile, updateProfile } from '../api/index';
 import { updateAccount } from '../api/auth';
+import WeightTrendChart from '../components/WeightTrendChart';
 
 const ACTIVITY_LEVELS = [
   { value: '久坐', label: '久坐不动', desc: '几乎不运动，长时间坐着工作' },
@@ -141,6 +142,9 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* 体重趋势图 */}
+      <WeightTrendChart />
 
       {/* 表单 */}
       <div className="bg-white rounded-2xl p-5 card-shadow space-y-5">

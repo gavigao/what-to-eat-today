@@ -315,9 +315,15 @@ async function recommend(req, res, next) {
     // 当日已吃食物汇总
     const eatenToday = meals.map(m => `${m.meal_type}:${m.food_name}(${Math.round(m.calories)}kcal)`).join(', ') || '暂无';
 
-    // 获取常见食物供 AI 参考（10 种即可减少 token）
+    // 获取常见食物供 AI 参考（根据餐次偏好筛选，避免不合适的食物出现在候选池）
+    const mealCategoryFilters = {
+      '早餐': "category IN ('主食','蛋奶','水果','豆制品','蔬菜')",
+      '午餐': "category IN ('主食','肉类','海鲜','蔬菜','豆制品','蛋奶')",
+      '晚餐': "category IN ('蔬菜','海鲜','蛋奶','豆制品','肉类','水果') AND category NOT IN ('饮料')",
+    };
+    const categoryFilter = mealCategoryFilters[meal_type] || mealCategoryFilters['午餐'];
     const [foods] = await pool.execute(
-      "SELECT name, category, calories, protein, carbs, fat, serving_size FROM foods WHERE is_custom = 0 ORDER BY RAND() LIMIT 10"
+      `SELECT name, category, calories, protein, carbs, fat, serving_size FROM foods WHERE is_custom = 0 AND ${categoryFilter} ORDER BY RAND() LIMIT 30`
     );
     const foodRef = foods.map(f =>
       `${f.name}(${f.category},${Math.round(f.calories*(f.serving_size/100))}kcal)`
@@ -330,11 +336,11 @@ async function recommend(req, res, next) {
     const prompt = `${profileText}
 今日:${eatenToday} 已摄入${Math.round(summary.totalCalories)}kcal(${Math.round(remaining)}kcal剩余) 蛋白${summary.protein.toFixed(1)}g 碳水${summary.carbs.toFixed(1)}g 脂肪${summary.fat.toFixed(1)}g
 近7天吃过:${recentFoods}
-请为${meal_type}推荐3种食物(从:${foodRef} 中选，避开最近吃过的):
+请为${meal_type}推荐3种食物(优先从候选池:${foodRef}中选，若无合适选项可直接推荐其他常见食物，务必避开最近吃过的):
 {"reason":"理由","foods":[{"name":"食物名","why":"原因"}]}`;
 
     const aiResponse = await callDeepSeek([
-      { role: 'system', content: '你是一位专业的营养师，根据用户的营养缺口推荐合适的食物。必须严格按 JSON 格式回复。' },
+      { role: 'system', content: '你是一位专业的营养师，根据用户的营养缺口推荐合适的食物。不同餐次有饮食禁忌——早餐适合高碳水高蛋白，避免油腻辛辣；午餐适合均衡荤素搭配；晚餐适合清淡低脂，严禁推荐含咖啡因饮品（咖啡、茶、奶茶等）、高脂肪食物和辛辣食物。推荐时优先考虑该餐次的饮食规律。必须严格按 JSON 格式回复。' },
       { role: 'user', content: prompt },
     ], 500);
 
