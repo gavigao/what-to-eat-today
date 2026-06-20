@@ -4,6 +4,7 @@ import MealCard from '../components/MealCard';
 import AiRecommendPanel from '../components/AiRecommendPanel';
 import { getMeals, addMeal, deleteMeal, getSummary } from '../api/index';
 import { getMyFamily, getFamilyMemberMeals } from '../api/family';
+import { useAuth } from '../context/AuthContext';
 
 const MEAL_TYPES = ['早餐', '午餐', '晚餐', '零食', '饮料'];
 const MEAL_COLORS = {
@@ -56,6 +57,7 @@ function mergeFamilyMembers(families, myId) {
 }
 
 export default function TodayPage() {
+  const { user } = useAuth();
   const [date, setDate] = useState(getTodayStr());
   const [meals, setMeals] = useState({});
   const [summary, setSummary] = useState(null);
@@ -69,7 +71,7 @@ export default function TodayPage() {
   // 加载家庭列表
   useEffect(() => {
     getMyFamily()
-      .then((res) => setFamilyMembers(mergeFamilyMembers(res.data || [], null)))
+      .then((res) => setFamilyMembers(mergeFamilyMembers(res.data || [], user?.id)))
       .catch(() => {});
   }, []);
 
