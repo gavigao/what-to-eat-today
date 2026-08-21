@@ -7,8 +7,8 @@ set -e
 # ============================================
 
 if [ $# -lt 1 ]; then
-  echo "用法: bash deploy.sh YOUR_DEEPSEEK_API_KEY"
-  echo "示例: bash deploy.sh sk-xxxxxxxxxxxxxxxxxxxxxxxxxx"
+  echo "用法: MYSQL_PASS='你的MySQL密码' bash deploy.sh YOUR_DEEPSEEK_API_KEY"
+  echo "示例: MYSQL_PASS='你的MySQL密码' bash deploy.sh sk-xxxxxxxxxxxxxxxxxxxxxxxxxx"
   exit 1
 fi
 
@@ -39,7 +39,8 @@ if ! command -v mysql &> /dev/null; then
   systemctl enable mysql
 fi
 
-MYSQL_PASS="REDACTED!"
+# 从环境变量读取 MySQL 密码（不写死在仓库里，避免泄露）
+MYSQL_PASS="${MYSQL_PASS:?请先设置环境变量 MYSQL_PASS，用法: MYSQL_PASS='你的密码' bash deploy.sh sk-xxx}"
 echo "[3/8] 配置 MySQL 数据库..."
 
 mysql -u root <<SQL
